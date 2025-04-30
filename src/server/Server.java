@@ -9,6 +9,11 @@ import java.util.Vector;
 
 public class Server {
 
+    public static void main (String args[])
+    {
+        new Server();
+    }
+
     // -- assign each client connection an ID. Just increment for now
     private int nextId = 0;
 
@@ -38,8 +43,7 @@ public class Server {
 
     }
 
-    public void peerconnection (Socket socket)
-    {
+    public void peerconnection (Socket socket) {
         // -- when a client arrives, create a thread for their communication
         ConnectionThread connection = new ConnectionThread(nextId, socket, this);
 
@@ -57,8 +61,7 @@ public class Server {
 
 
     // -- called by a ServerThread when a client is terminated
-    public void removeID(int id)
-    {
+    public void removeID(int id) {
         // -- find the object belonging to the client thread being terminated
         for (int i = 0; i < clientconnections.size(); ++i) {
             ConnectionThread cc = clientconnections.get(i);
@@ -79,8 +82,7 @@ public class Server {
     }
 
 
-    private void listen ()
-    {
+    private void listen () {
         try {
             // -- open the server socket
             serversocket = new ServerSocket(getPort());   //PORT = 8000
@@ -99,18 +101,55 @@ public class Server {
         }
         catch (IOException e) {
             e.printStackTrace();
-            System.exit(1);
+            shutdown();
 
         }
     }
 
+    public void shutdown() {
+        System.exit(1);
+    }
 
-    public static void main (String args[])
-    {
-        // -- instantiate the server anonymously
-        //    no need to keep a reference to the object since it will run in its own thread
-        new Server();
+    public boolean login( String username,
+                          String password ) {
 
+        if ( checkUsername( username ) && checkPassword( password ) ) ;
+
+        return true;
+
+    }
+    public boolean register( String username,
+                             String password,
+                             String email ) {
+
+        if ( checkUsername( username ) &&
+                checkPassword( password ) &&
+                isAvailable( username ) ) {
+
+
+
+        }
+
+        return true;
+
+    }
+
+    private void remove( String username ) {
+
+    }
+    private void delete( String username ) {
+
+    }
+
+
+    public boolean checkUsername( String username ) {
+        return true;
+    }
+    public boolean checkPassword( String password ) {
+        return true;
+    }
+    public boolean isAvailable( String username ) {
+        return true;
     }
 
 

@@ -6,12 +6,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Scanner;
 
 public class Client {
 
+    ClientGUI GUI;
+
     // -- port and host name of server
-    private static final int PORT = 8000;
+    private int PORT = 8000;
 
     /* --
      For Windows
@@ -29,7 +30,10 @@ public class Client {
      System Preferences -> Network -> Advanced -> TCP/IP -> IPv4 address 192.168.1.14
 
     -- */
-    private static String HOST = "127.0.0.1";
+    private String HOST = "192.168.56.1";
+    // Self: 127.0.0.1
+    //Reinhart: 192.168.56.1
+    // Logan: 10.100.32.197
 
     // -- socket variable for peer to peer communication
     private Socket socket;
@@ -40,27 +44,44 @@ public class Client {
     private DataOutputStream dataout;
 
 
-    public Client (String host)
-    {
-        Client.HOST = host;
-        try {
-            // -- construct the peer to peer socket
-            socket = new Socket(HOST, PORT);
-            // -- wrap the socket in stream I/O objects
-            datain = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            dataout = new DataOutputStream(socket.getOutputStream());
-        } catch (UnknownHostException e) {
-            System.out.println("Host " + HOST + " at port " + PORT + " is unavailable.");
-            System.exit(1);
-        } catch (IOException e) {
-            System.out.println("Unable to create I/O streams.");
-            System.exit(1);
-        }
+    public Client (ClientGUI initGUI,
+                   String host)
+            throws UnknownHostException,
+            IOException {
+
+        GUI = initGUI;
+        HOST = host;
+
+        // -- construct the peer to peer socket
+        socket = new Socket(HOST, PORT);
+        // -- wrap the socket in stream I/O objects
+        datain = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        dataout = new DataOutputStream(socket.getOutputStream());
 
     }
 
-    public String sendString (String _msg)
-    {
+    public Client (ClientGUI initGUI,
+                   String host,
+                   String port)
+            throws UnknownHostException,
+            IOException {
+
+        GUI = initGUI;
+        HOST = host;
+        PORT = Integer.parseInt( port );
+        System.out.println(PORT);
+
+        // -- construct the peer to peer socket
+        socket = new Socket(HOST, PORT);
+        // -- wrap the socket in stream I/O objects
+        datain = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        dataout = new DataOutputStream(socket.getOutputStream());
+
+    }
+
+
+    public String send (String _msg) {
+
         String rtnmsg = "";
 
         try {
@@ -75,71 +96,58 @@ public class Client {
             //    That is, if there is no String to read, it will read "". Doing it this way does not allow
             //    that to occur. We must get a response from the server. Time out could be implemented with
             //    a counter.
-            rtnmsg = "";
-            do {
+
+            rtnmsg = datain.readLine();
+
+            while( rtnmsg.isEmpty() ) {
                 rtnmsg = datain.readLine();
-            } while (rtnmsg.equals(""));
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
-            System.exit(1);
         }
 
+        System.out.println("RETURNED: "+rtnmsg+"\n");
         return rtnmsg;
 
     }
 
-    public void disconnect ()
-    {
-        String text = "disconnect";
-        try {
-            // -- the server only receives String objects that are
-            //    terminated with a newline "\n"
+    public boolean login( String username,
+                          String password ) {
 
-            // -- send a special message to let the server know
-            //    that this client is shutting down
-            text += "\n";
-            dataout.writeBytes(text);
-            dataout.flush();
+        return send( "login:"+username+":"+password ).equals("c");
 
-            // -- close the peer to peer socket
-            socket.close();
-        } catch (IOException e1) {
-            e1.printStackTrace();
-            System.exit(1);
-        }
+    }
+    public boolean register( String username,
+                             String password,
+                             String email ) {
+        return send( "register:"+username+":"+password+":"+email ).equals("c");
+    }
+    public boolean changePassword( String password ) {
+
+        return true;
+
+    }
+    public void disconnect () {
+
+        send("disconnect");
+
+    }
+    public void delete() {
 
     }
 
+    public boolean checkVerificationCode( int code ) {
 
-    public static void main(String[] args)
-    {
-        Scanner kb = new Scanner(System.in);
-        System.out.print("Server IP Address: ");
-        String serveripaddress = kb.next();
-        kb.close();
+        return true;
 
-        // -- instantiate a Client object
-        //    the constructor will attempt to connect to the server
-        Client client = new Client(serveripaddress);
-
-        String commandString;
-        String replyString;
-
-        for (int i = 0; i < 10; ++i) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            };
-            commandString = "hello";
-            System.out.println("CLIENT send:  " + commandString);
-            // -- send message to server and receive reply.
-            replyString = client.sendString(commandString);
-            System.out.println("CLIENT receive: " + replyString);
-        }
-
-        client.disconnect();
     }
+
+    public String[] information() {
+
+        return new String[]{ "votlbob", "bitcoin.votlbob@gmail.com", "Logan", "Abounader" };
+
+    }
+
 
 }

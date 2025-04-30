@@ -27,8 +27,7 @@ public class ConnectionThread extends Thread {
     private Server server;
 
 
-    public ConnectionThread (int id, Socket socket, Server server)
-    {
+    public ConnectionThread (int id, Socket socket, Server server) {
         this.server = server;
         this.id = id;
         this.name = Integer.toString(id);
@@ -40,19 +39,20 @@ public class ConnectionThread extends Thread {
             dataout = new DataOutputStream(socket.getOutputStream());
         } catch (IOException e) {
             e.printStackTrace();
-            System.exit(1);
         }
 
     }
 
-    public String toString ()
-    {
+    public String toString () {
+
         return name;
+
     }
 
-    public String getname ()
-    {
+    public String getname () {
+
         return name;
+
     }
 
 
@@ -64,29 +64,36 @@ public class ConnectionThread extends Thread {
                 //    on the end due to how BufferedReader readLine() works.
                 //    The client adds it to the user's string but the BufferedReader
                 //    readLine() call strips it off
-                String txt = datain.readLine();
-                System.out.println("SERVER receive: " + txt);
+                String pre = datain.readLine();
+                System.out.println(pre);
+                String[] txt = pre.split(":", -1);
+                System.out.println("SERVER receive: " + txt[0]);
                 // -- if it is not the termination message, send it back adding the
                 //    required (by readLine) "\n"
 
                 // -- if the disconnect string is received then
                 //    close the socket, remove this thread object from the
                 //    server's active client thread list, and terminate the thread
-                if (txt.equals("disconnect")) {
-                    datain.close();
-                    server.removeID(id);
-                    go = false;
-                }
-                else if (txt.equals("hello")) {
 
-                    dataout.writeBytes("world!" + "\n");
-                    dataout.flush();
+                switch( txt[0] ) {
 
+                    case( "disconnect" ):
+                        disconnect();
+                        break;
+
+                    case( "login" ):
+                        login(txt[1], txt[2]);
+                        break;
+
+                    case( "register" ):
+                        register( txt[1], txt[2], txt[3] );
+                        break;
+
+                    default:
+                        unknownCommand();
+                        break;
                 }
-                else {
-                    System.out.println("unrecognized command >>" + txt + "<<");
-                    dataout.writeBytes(txt + "\n");
-                }
+
             }
             catch (IOException e) {
                 e.printStackTrace();
@@ -95,4 +102,47 @@ public class ConnectionThread extends Thread {
 
         }
     }
+
+
+    private void disconnect() throws IOException {
+
+        send( "disconnected" );
+
+        datain.close();
+        server.removeID(id);
+        go = false;
+
+    }
+    private void login( String username,
+                        String password ) throws IOException {
+
+        send( server.login( username, password) );
+
+    }
+    private void register( String username,
+                           String password,
+                           String email) throws IOException {
+
+        send( server.register( username, password, email ) );
+
+    }
+    private void unknownCommand() throws IOException {
+        send( "unknown command" );
+    }
+
+    private void send( String _msg ) throws IOException {
+        System.out.println( "ID: "+id+"\nSENDING: "+_msg+"\n" );
+        dataout.writeBytes(_msg + "\n");
+        dataout.flush();
+    }
+    private void send( boolean _msg ) throws IOException {
+        send( _msg?"c":"d" );
+    }
+    private void confirm() throws IOException {
+        send( "c" );
+    }
+    private void deny() throws IOException {
+        send( "d" );
+    }
+
 }
