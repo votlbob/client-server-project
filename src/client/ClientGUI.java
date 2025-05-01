@@ -1,24 +1,17 @@
 package client;
 
-import database.*;
-import database.Record;
-
 import java.awt.*;
 
 import javax.swing.*;
 
 import java.awt.event.ActionListener;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.HashMap;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ClientGUI {
@@ -86,8 +79,9 @@ public class ClientGUI {
 
         __init__();
 
-        connect( "127.0.0.1", "8000" );
-        loadAccountPage();
+        connect( "127.0.0.1",
+                 "8000",
+                 "account");
 
     }
 
@@ -631,7 +625,7 @@ public class ClientGUI {
         String PORT = portField.getText();
         System.out.println(PORT);
 
-        connect( IP, PORT );
+        connect( IP, PORT, "login" );
 
     }
     private void loginButtonClicked() {
@@ -745,19 +739,21 @@ public class ClientGUI {
 
 
     private void connect( String IP,
-                          String PORT ) {
+                          String PORT,
+                          String onSuccess ) {
         try {
 
             client = new Client( this, IP, PORT );
-            loadLoginPage();
+            load(onSuccess);
 
         }
         catch (UnknownHostException e) {
             System.out.println("Host " + IP + " at port " + PORT + " is unavailable.");
+            loadConnectPage();
         }
         catch (IOException e) {
-            e.printStackTrace();
             System.out.println("Unable to create I/O streams.");
+            loadConnectPage();
         }
     }
     private boolean login( String username,
