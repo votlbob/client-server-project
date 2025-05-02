@@ -1,5 +1,6 @@
 package server;
 
+import server.database.Record;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -11,26 +12,32 @@ import java.net.Socket;
 
 
 public class ConnectionThread extends Thread {
-    private boolean go;
-    private String name;
-    private int id;
+
 
     // -- the main server (port listener) will supply the socket
     //    the thread (this class) will provide the I/O streams
-    //    BufferedReader is used because it handles String objects
-    //    whereas DataInputStream does not (primitive types only)
+
+
+    private Server server;
+
+    volatile boolean go;
+
+
+    private int id;
+    private String username = "1";
+
+
     private BufferedReader datain;
     private DataOutputStream dataout;
 
-    // -- this is a reference to the "parent" Server object
-    //    it will be set at time of construction
-    private Server server;
 
 
-    public ConnectionThread (int id, Socket socket, Server server) {
+    public ConnectionThread (int id,
+                             Socket socket,
+                             Server server) {
+
         this.server = server;
         this.id = id;
-        this.name = Integer.toString(id);
         go = true;
 
         // -- create the stream I/O objects on top of the socket
@@ -43,19 +50,6 @@ public class ConnectionThread extends Thread {
 
     }
 
-    public String toString () {
-
-        return name;
-
-    }
-
-    public String getname () {
-
-        return name;
-
-    }
-
-
     public void run () {
         // -- server thread runs until the client terminates the connection
         while (go) {
@@ -65,11 +59,8 @@ public class ConnectionThread extends Thread {
                 //    The client adds it to the user's string but the BufferedReader
                 //    readLine() call strips it off
                 String pre = datain.readLine();
-                System.out.println(pre);
+                log("RECEIVED: " + pre);
                 String[] txt = pre.split(":", -1);
-                System.out.println("SERVER receive: " + txt[0]);
-                // -- if it is not the termination message, send it back adding the
-                //    required (by readLine) "\n"
 
                 // -- if the disconnect string is received then
                 //    close the socket, remove this thread object from the
@@ -86,7 +77,11 @@ public class ConnectionThread extends Thread {
                         break;
 
                     case( "register" ):
-                        register( txt[1], txt[2], txt[3] );
+                        register( txt[1], txt[2], txt[3], txt[4], txt[5] );
+                        break;
+
+                    case( "get" ):
+                        sendUserInfo();
                         break;
 
                     default:
@@ -102,6 +97,12 @@ public class ConnectionThread extends Thread {
 
         }
     }
+    @Override
+    public void interrupt() {
+        go = false;
+        super.interrupt();
+    }
+
 
 
     private void disconnect() throws IOException {
@@ -119,24 +120,34 @@ public class ConnectionThread extends Thread {
         send( server.login( username, password) );
 
     }
-    private void register( String username,
-                           String password,
-                           String email) throws IOException {
+    private void register( String... info ) throws IOException {
 
-        send( server.register( username, password, email ) );
+        send( server.register( info[0],
+                               info[1],
+                               info[2],
+                               info[3],
+                               info[4] ) );
+
+    }
+    private void sendUserInfo() throws IOException {
+
+        Record user = server.get( username );
+        send(user.toString());
 
     }
     private void unknownCommand() throws IOException {
         send( "unknown command" );
     }
 
+
     private void send( String _msg ) throws IOException {
-        System.out.println( "ID: "+id+"\nSENDING: "+_msg+"\n" );
+        log( "ID: "+id);
+        log( "SENDING: "+_msg+"\n" );
         dataout.writeBytes(_msg + "\n");
         dataout.flush();
     }
     private void send( boolean _msg ) throws IOException {
-        send( _msg?"c":"d" );
+        send( _msg?"confirm":"deny" );
     }
     private void confirm() throws IOException {
         send( "c" );
@@ -144,5 +155,12 @@ public class ConnectionThread extends Thread {
     private void deny() throws IOException {
         send( "d" );
     }
+
+    private void log( String message ) {
+
+        System.out.println( message );
+
+    }
+
 
 }

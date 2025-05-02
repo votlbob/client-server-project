@@ -1,4 +1,4 @@
-package database;
+package server.database;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -12,12 +12,12 @@ import java.util.Scanner;
 public class Table {
 
     /**
-     * The path to the database file
+     * The path to the server.database file
      */
     private String databasefile = "";
 
     /**
-     * The list of records that comprise the database table
+     * The list of records that comprise the server.database table
      */
     private ArrayList<Record> table;
 
@@ -123,6 +123,9 @@ public class Table {
      * @throws IllegalArgumentException Thrown if the number of fields does not match the table or if the primary key is duplicated
      */
     public void addRecord(Record r) throws IllegalArgumentException {
+
+        System.out.println( "REGISTER: "+r );
+
         if (r.getNFields() != fieldnames.size()) {
             throw new IllegalArgumentException("mismatched number of fields");
         }
@@ -145,7 +148,7 @@ public class Table {
     }
 
     /**
-     * Write the database table to a CSV file
+     * Write the server.database table to a CSV file
      * @param filename The name of the file to be written
      * @throws FileNotFoundException Thrown if the file cannot be written
      */
@@ -174,7 +177,7 @@ public class Table {
     }
 
     /**
-     * Read the database table from a CSV file
+     * Read the server.database table from a CSV file
      * @param filename The name of the file
      * @throws FileNotFoundException Thrown if the file cannot be read
      */

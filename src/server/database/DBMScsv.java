@@ -1,7 +1,8 @@
-package database;
+package server.database;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class DBMScsv extends DBMSAbstract {
 
@@ -14,7 +15,7 @@ public class DBMScsv extends DBMSAbstract {
     @Override
     public void connect(String filename) throws FileNotFoundException {
         try {
-            // -- database table will be held entirely in RAM
+            // -- server.database table will be held entirely in RAM
             table = new Table();
             table.readFromFile(filename);
             this.filename = filename;
@@ -44,8 +45,6 @@ public class DBMScsv extends DBMSAbstract {
         for (int i = 0; i < fields.length; ++i) {
             fields[i] = fields[i].trim();
         }
-        // -- find the location of the key in the table field names
-        int pos = findrecord(fields[0]);
 
         // -- find all records whose value matches that of the key
         for (Record r : table.getTable()) {
@@ -61,6 +60,7 @@ public class DBMScsv extends DBMSAbstract {
     public void insert(String... args) throws IllegalArgumentException {
         // -- varargs are used the same as arrays
         Record r = new Record();
+
         for (int i = 0; i < args.length; ++i) {
             String[] pieces = args[i].split("=");
             for (int j = 0; j < pieces.length; ++j) {

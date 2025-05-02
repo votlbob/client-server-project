@@ -1,51 +1,66 @@
 package server;
 
-import database.Record;
-import database.DBMScsv;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 public class ServerGUI extends JFrame {
 
-    private JTable clientTable;
-    private DefaultTableModel tableModel;
-    private JTextField portField;
-    private JLabel serverStatusLabel;
+
     private Server server;
-    private DBMScsv database;
+    private boolean serverUp;
+
+
+    private JPanel panel;
+    private JTable userTable;
+    private JButton startServerButton,
+                    stopServerButton,
+                     restartServerButton;
+    private JLabel addressLabel,
+                   portLabel,
+                   serverStatusLabel;
+    private JTextField portField;
+    private DefaultTableModel tableModel;
+
 
     public ServerGUI() {
-        setTitle("User Server");
-        setSize(800, 600);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(10, 10));
 
-        // === Top Panel (Status + Port) ===
-        JPanel topPanel = new JPanel(new BorderLayout());
+        __init__();
 
-        serverStatusLabel = new JLabel("Server Status: Offline");
+    }
+
+
+    private void __init__() {
+
+        server = new Server( 8000 );
+
+        setTitle("Server GUI");
+        setSize(580, 384);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        loadPanel();
+
+        getContentPane().add(panel, BorderLayout.CENTER);
+
+    }
+    private void loadPanel() {
+
+        panel = new JPanel();
+
+        serverStatusLabel = new JLabel("SERVER STATUS: Offline");
         serverStatusLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        topPanel.add(serverStatusLabel, BorderLayout.WEST);
+        panel.add(serverStatusLabel, BorderLayout.CENTER);
 
-        JPanel portPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        portPanel.add(new JLabel("PORT:"));
-        portField = new JTextField("8000", 6);
-        portPanel.add(portField);
-        topPanel.add(portPanel, BorderLayout.EAST);
+        portLabel = new JLabel("PORT: ");
+        portField = new JTextField(String.valueOf( server.getPort() ));
 
-        add(topPanel, BorderLayout.NORTH);
 
         // === Table Panel (User Table) ===
         String[] columnNames = {"username", "email", "Active?"};
         tableModel = new DefaultTableModel(columnNames, 0);
-        clientTable = new JTable(tableModel);
-        JScrollPane tableScrollPane = new JScrollPane(clientTable);
+        userTable = new JTable(tableModel);
+        JScrollPane tableScrollPane = new JScrollPane(userTable);
         tableScrollPane.setPreferredSize(new Dimension(700, 300));
         add(tableScrollPane, BorderLayout.CENTER);
 
@@ -57,63 +72,72 @@ public class ServerGUI extends JFrame {
 
         startButton.addActionListener(e -> startServerButtonClicked());
         stopButton.addActionListener(e -> stopServerButtonClicked());
-        resetButton.addActionListener(e -> resetServerButtonClicked());
+        resetButton.addActionListener(e ->  restartServerButtonClicked());
 
         buttonPanel.add(startButton);
         buttonPanel.add(stopButton);
         buttonPanel.add(resetButton);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Load database to initially populate table
-        database = new DBMScsv();
-        try {
-            database.connect("whitelist.csv");
-        } catch (FileNotFoundException e) {
-            System.out.println("Could not load whitelist.csv");
-        }
-
-        refreshClientTable();
         setVisible(true);
+
     }
+
 
     private void startServerButtonClicked() {
-        int port = Integer.parseInt(portField.getText().trim());
-        server = new Server();
-        serverStatusLabel.setText("Server Status: Online");
-        refreshClientTable();
-    }
 
+        startServer();
+
+    }
     private void stopServerButtonClicked() {
-        if (server != null) {
-            server.shutdown();
-            serverStatusLabel.setText("Server Status: Offline");
-        }
+
+        stopServer();
+
+    }
+    private void restartServerButtonClicked() {
+
+        restartServer();
+
     }
 
-    private void resetServerButtonClicked() {
-        stopServerButtonClicked();
-        startServerButtonClicked();
+
+    public ArrayList<String[]> refreshClientTable() {
+
+        return server.getRegisteredUsers();
+
     }
 
-    public void refreshClientTable() {
-        tableModel.setRowCount(0);
-        if (database != null) {
-            ArrayList<Record> users = database.getTable().getTable();
-            for (Record r : users) {
-                try {
-                    String username = r.getValue("username");
-                    String email = r.getValue("email");
-                    String active = r.getValue("active");
-                    tableModel.addRow(new Object[]{username, email, active});
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Malformed record: " + r);
-                }
-            }
-        }
+
+    private void startServer() {
+
+        server.start();
+
     }
+    private void stopServer() {
+
+        server.stop();
+
+    }
+    private void restartServer() {
+
+        server.restart();
+
+    }
+
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(ServerGUI::new);
+
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                try {
+                    ServerGUI window = new ServerGUI();
+                    window.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
     }
 
 }

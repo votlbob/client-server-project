@@ -1,51 +1,57 @@
 package server;
 
+import server.database.DBMScsv;
+import server.database.Record;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Vector;
 
 
 
 public class Server {
+    
+    
+    volatile boolean status;
 
-    public static void main (String args[])
-    {
-        new Server();
-    }
-
-    // -- assign each client connection an ID. Just increment for now
+    private int PORT;
     private int nextId = 0;
 
-    // -- the socket that waits for client connections
+    private String filename = "C:\\Users\\fabou\\IdeaProjects\\Client Server Project\\src\\server\\database\\registry.csv";
+    private DBMScsv database;
+
     private ServerSocket serversocket;
 
-    // -- the port number used for client communication
-    private static final int PORT = 8000;
-
-    // -- list of active client threads by ID number
     private Vector<ConnectionThread> clientconnections;
 
+    
 
-    public int getPort()
-    {
-        return PORT;
-    }
+    public Server( int port ) {
 
-    public Server ()
-    {
+        status = false;
 
-        // -- construct the list of active client threads
+        try {
+            database = new DBMScsv();
+            database.connect( filename );
+        } catch(Exception e) {
+            e.printStackTrace();
+            shutdown();
+        }
+
+        PORT = port;
+
         clientconnections = new Vector<ConnectionThread>();
 
-        // -- listen for incoming connection requests
-        listen();
-
     }
 
-    public void peerconnection (Socket socket) {
+
+    public void peerconnection( Socket socket ) {
         // -- when a client arrives, create a thread for their communication
-        ConnectionThread connection = new ConnectionThread(nextId, socket, this);
+        ConnectionThread connection = new ConnectionThread( nextId,
+                                                            socket,
+                                                     this);
 
         // -- add the thread to the active client threads list
         clientconnections.add(connection);
@@ -61,7 +67,7 @@ public class Server {
 
 
     // -- called by a ServerThread when a client is terminated
-    public void removeID(int id) {
+    public void removeID( int id ) {
         // -- find the object belonging to the client thread being terminated
         for (int i = 0; i < clientconnections.size(); ++i) {
             ConnectionThread cc = clientconnections.get(i);
@@ -82,74 +88,147 @@ public class Server {
     }
 
 
-    private void listen () {
-        try {
-            // -- open the server socket
-            serversocket = new ServerSocket(getPort());   //PORT = 8000
+    public void start() {
 
-            // -- server runs until we manually shut it down
-            while (true) {
-                // -- block until a client comes along
-                Socket socket = serversocket.accept();
+        if ( !status ) {
 
-                // -- connection accepted, create a peer-to-peer socket
-                //    between the server (thread) and client
-                peerconnection(socket);
+            status = true;
 
+            new Thread(() -> {
 
-            }
+                try {
+
+                    serversocket = new ServerSocket(PORT);   //PORT = 8000
+
+                    while (status) {
+                        // -- block until a client comes along
+                        Socket socket = serversocket.accept();
+
+                        // -- connection accepted, create a peer-to-peer socket
+                        //    between the server (thread) and client
+                        peerconnection(socket);
+                    }
+                    System.out.println("exited from here");
+
+                } catch( IOException e ) {
+                    e.printStackTrace();
+                }
+
+            }).start();
+
         }
-        catch (IOException e) {
-            e.printStackTrace();
-            shutdown();
 
-        }
     }
+    public void stop() {
 
+        for (ConnectionThread c : clientconnections) c.interrupt();
+        clientconnections = new Vector<ConnectionThread>();
+
+        System.out.print(status);
+        if ( status ) { status = false; }
+        System.out.println(" -> "+status);
+
+    }
+    public void restart() {
+        stop();
+        start();
+    }
     public void shutdown() {
+        stop();
         System.exit(1);
     }
+
 
     public boolean login( String username,
                           String password ) {
 
-        if ( checkUsername( username ) && checkPassword( password ) ) ;
+        Record user;
 
-        return true;
+        try {
 
-    }
-    public boolean register( String username,
-                             String password,
-                             String email ) {
+            user = database.select("USERNAME=" + username).get(0);
 
-        if ( checkUsername( username ) &&
-                checkPassword( password ) &&
-                isAvailable( username ) ) {
-
-
-
+        } catch( IndexOutOfBoundsException e ) {
+            System.out.println( "user doesn't exist" );
+            return false;
         }
 
+        return password.equals( user.getValue("PASSWORD") );
+
+    }
+    public String register( String username,
+                            String first,
+                            String last,
+                            String email,
+                            String password ) {
+
+        if ( checkUsernameFormat( username ) ) {
+            if ( checkPasswordFormat( password ) ) {
+                if ( isAvailable( "USERNAME="+username ) ) {
+                    if ( isAvailable( "EMAIL="+email ) ) {
+
+                        database.insert( "USERNAME="+username,
+                                                "FIRST="+first,
+                                                "LAST="+last,
+                                                "EMAIL="+email,
+                                                "PASSWORD="+password );
+                        try {
+                            database.disconnect();
+                            database.connect( filename );
+                        } catch( Exception e ) {
+                            e.printStackTrace();
+                            shutdown();
+                        }
+
+                        return "confirm";
+
+                    } return "email_in_use";
+                } return "username_in_use";
+            } return "password_format_error";
+        } return "username_format_error";
+
+    }
+    public Record get( String username ) {
+        return database.select("USERNAME="+username).get(0);
+    }
+    public void remove( String username ) {
+
+    }
+    public void delete( String username ) {
+
+    }
+
+
+    public boolean checkUsernameFormat( String username ) {
         return true;
-
     }
-
-    private void remove( String username ) {
-
-    }
-    private void delete( String username ) {
-
-    }
-
-
-    public boolean checkUsername( String username ) {
+    public boolean checkPasswordFormat( String password ) {
         return true;
     }
-    public boolean checkPassword( String password ) {
-        return true;
+    public boolean isAvailable( String fieldspec ) {
+
+        return !database.contains( fieldspec );
+
     }
-    public boolean isAvailable( String username ) {
-        return true;
+
+    
+    public int getPort() {
+
+        return PORT;
+
+    }
+    public ArrayList<String[]> getRegisteredUsers() {
+
+        return new ArrayList<>();
+
+    }
+
+
+
+    public static void main (String args[]) {
+
+        new Server( 8000 );
+
     }
 
 
