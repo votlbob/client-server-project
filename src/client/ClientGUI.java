@@ -614,17 +614,21 @@ public class ClientGUI extends JFrame {
 
                 case( "confirm" ):
                     loadLoginPage();
+                    JOptionPane.showMessageDialog( panel, "Register Successful" );
                     break;
 
                 case( "deny" ):
+                    JOptionPane.showMessageDialog( panel, "Register Unsuccessful" );
                     loadSignupPage();
                     break;
 
                 case( "connection_invalid" ):
+                    JOptionPane.showMessageDialog( panel, "Connection Closed" );
                     loadConnectPage();
                     break;
 
                 default:
+                    JOptionPane.showMessageDialog( panel, getErrorMessage(s) );
                     System.out.println( s );
                     loadSignupPage();
                     break;
@@ -794,6 +798,41 @@ public class ClientGUI extends JFrame {
     private String[] getInfo() {
 
         return client.information();
+
+    }
+    private String getErrorMessage( String error ) {
+
+        String rtnmsg = "";
+
+        switch( error ) {
+
+            case( "email_in_use" ):
+                rtnmsg = "Email is connected to another account.";
+                break;
+
+            case( "username_in_use" ):
+                rtnmsg = "Username is already in use.";
+                break;
+
+            case( "email_format_error" ):
+                rtnmsg = "Email is not formatted correctly.";
+                break;
+
+            case( "password_format_error" ):
+                rtnmsg = "Password is not formatted correctly: Must contain A-Z, a-z, 0-9, and a special character.";
+                break;
+
+            case( "username_format_error" ):
+                rtnmsg = "Username is not formatted correctly.";
+                break;
+
+            default:
+                rtnmsg = error;
+                break;
+
+        }
+
+        return rtnmsg;
 
     }
 

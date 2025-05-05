@@ -192,50 +192,57 @@ public class Table {
 
             // -- read the field names
             ArrayList<String> fnames = new ArrayList<String>();
-            String s = file.nextLine();
-            // -- strip trailing comma if it exists
-            if (s.trim().charAt(s.length() - 1) == ',') {
-                s = s.substring(0, s.lastIndexOf(','));
-            }
-            String[] ss = s.split(",");
-            for (String fname : ss) {
-                fnames.add(fnames.size(), fname.trim());
-            }
-            // -- primary key is the first field listed
-            this.primarykey = ss[0].trim();
-            this.fieldnames = fnames;
+            String s = "";
+            if ( file.hasNextLine() ) {
 
 
-            // -- read the field data types
-            ArrayList<String> ftypes = new ArrayList<String>();
-            s = file.nextLine();
-            // -- strip trailing comma if it exists
-            if (s.trim().charAt(s.length() - 1) == ',') {
-                s = s.substring(0, s.lastIndexOf(','));
-            }
+                s = file.nextLine();
 
-            ss = s.split(",");
-            for (String ftype : ss) {
-                ftypes.add(ftypes.size(), ftype.trim());
-            }
-            this.fieldtypes = ftypes;
+                // -- strip trailing comma if it exists
+                if (s.trim().charAt(s.length() - 1) == ',') {
+                    s = s.substring(0, s.lastIndexOf(','));
+                }
+                String[] ss = s.split(",");
+                for (String fname : ss) {
+                    fnames.add(fnames.size(), fname.trim());
+                }
+                // -- primary key is the first field listed
+                this.primarykey = ss[0].trim();
+                this.fieldnames = fnames;
 
-            // -- read the records
-            ArrayList<Record> tbl = new ArrayList<Record>();
-            while (file.hasNext()) {
+
+                // -- read the field data types
+                ArrayList<String> ftypes = new ArrayList<String>();
                 s = file.nextLine();
                 // -- strip trailing comma if it exists
                 if (s.trim().charAt(s.length() - 1) == ',') {
                     s = s.substring(0, s.lastIndexOf(','));
                 }
-                ss = s.split(",",-1);
-                Record rec = new Record();
-                for (int i = 0; i < fnames.size(); ++i) {
-                    rec.addField(new Field(fnames.get(i), ss[i].trim()));
+
+                ss = s.split(",");
+                for (String ftype : ss) {
+                    ftypes.add(ftypes.size(), ftype.trim());
                 }
-                tbl.add(rec);
+                this.fieldtypes = ftypes;
+
+                // -- read the records
+                ArrayList<Record> tbl = new ArrayList<Record>();
+                while (file.hasNext()) {
+                    s = file.nextLine();
+                    // -- strip trailing comma if it exists
+                    if (s.trim().charAt(s.length() - 1) == ',') {
+                        s = s.substring(0, s.lastIndexOf(','));
+                    }
+                    ss = s.split(",", -1);
+                    Record rec = new Record();
+                    for (int i = 0; i < fnames.size(); ++i) {
+                        rec.addField(new Field(fnames.get(i), ss[i].trim()));
+                    }
+                    tbl.add(rec);
+                }
+                this.table = tbl;
+
             }
-            this.table = tbl;
 
             file.close();
         }
