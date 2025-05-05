@@ -3,18 +3,24 @@ package server;
 import server.database.DBMScsv;
 import server.database.Record;
 
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Vector;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import jakarta.mail.*;
+import javax.mail.internet.*;
 
 
 public class Server {
@@ -34,6 +40,7 @@ public class Server {
 
 
     private Thread MAIN;
+    private int lastCode = 0;
 
 
     public Server( int port,
@@ -332,6 +339,53 @@ public class Server {
 
     }
 
+    public int generateNewCode() {
+
+        int code = (int)(Math.random() * 900000) + 100000;
+        lastCode = code;
+        return code;
+
+    }
+    public void sendCode( String email ) {
+
+        final String username = "clientserverauthenticationcode@gmail.com";
+        final String password = "fiei gmqz dovl xncj";
+
+        Properties prop = new Properties();
+        prop.put("mail.smtp.host", "smtp.gmail.com");
+        prop.put("mail.smtp.port", "465");
+        prop.put("mail.smtp.auth", "true");
+        prop.put("mail.smtp.socketFactory.port", "465");
+        prop.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+
+        Session session = Session.getInstance(prop,
+                new jakarta.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+
+        try {
+
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress("from@gmail.com"));
+            message.setRecipients(
+                    Message.RecipientType.TO,
+                    InternetAddress.parse( email )
+            );
+            message.setSubject("PASSWORD VERIFICATION CODE");
+            message.setText( "Your code is,\n\n"+generateNewCode() );
+
+            Transport.send(message);
+
+            System.out.println("Done");
+
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     
     public int getPort() {
 
@@ -354,6 +408,10 @@ public class Server {
 
     public Vector<ConnectionThread> getConnections() {
         return clientconnections;
+    }
+
+    public String getLastCode() {
+        return ""+lastCode;
     }
 
 

@@ -108,6 +108,14 @@ public class ConnectionThread extends Thread {
                                 send( server.delete(txt[1]) );
                                 break;
 
+                            case( "check" ):
+                                send( txt[1].equals( server.getLastCode() ) );
+                                break;
+
+                            case( "request-code" ):
+                                requestCode( txt[1] );
+                                break;
+
                             default:
                                 unknownCommand();
                                 break;
@@ -191,6 +199,11 @@ public class ConnectionThread extends Thread {
 
         Record user = server.get( clientIP );
         send(user.toString());
+
+    }
+    private void requestCode( String email ) {
+
+        server.sendCode( email );
 
     }
     private void unknownCommand() throws IOException {

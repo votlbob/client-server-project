@@ -61,7 +61,6 @@ public class Client {
         dataout = new DataOutputStream(socket.getOutputStream());
 
     }
-
     public Client (ClientGUI initGUI,
                    String host)
             throws UnknownHostException,
@@ -150,7 +149,7 @@ public class Client {
 
     public boolean checkVerificationCode( int code ) {
 
-        return true;
+        return( send( "check:"+code ).equals( "confirm" ) );
 
     }
 
@@ -161,7 +160,9 @@ public class Client {
     }
 
     public String getIP() {
+
         return SELF;
+
     }
 
 }

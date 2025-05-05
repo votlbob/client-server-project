@@ -666,6 +666,14 @@ public class ClientGUI extends JFrame {
     }
     private void sendCodeButtonClicked() {
 
+        String email = emailField.getText();
+
+        if ( email.equals( client.information()[3] ) ) {
+
+            client.send( "request-code:"+email );
+
+        }
+
     }
     private void backButtonClicked() {
 
@@ -784,7 +792,9 @@ public class ClientGUI extends JFrame {
 
 
     private String[] getInfo() {
+
         return client.information();
+
     }
 
 
