@@ -77,7 +77,7 @@ public class ClientGUI extends JFrame {
 
         __init__();
 
-        //connect( "127.0.0.1", "signup");
+        connect( "127.0.0.1", "login");
 
     }
 
@@ -357,24 +357,25 @@ public class ClientGUI extends JFrame {
         curState = "account";
         setTitle(curState);
 
+        String[] info = getInfo();
 
-        JLabel welcome = new JLabel("WELCOME, "+getFirstName()+"!", SwingConstants.CENTER);
+        JLabel welcome = new JLabel("WELCOME, "+info[2]+"!", SwingConstants.CENTER);
         welcome.setFont(new Font("Tahoma", Font.BOLD, 30));
         welcome.setBounds(0, 60, 580, 50);
         panel.add(welcome);
 
 
-        JLabel username = new JLabel(getUsername());
+        JLabel username = new JLabel(info[0]);
         username.setFont(new Font("Tahoma", Font.PLAIN, 20));
         username.setBounds(70, 150, 580, 50);
         panel.add(username);
 
-        JLabel email = new JLabel(getEmail());
+        JLabel email = new JLabel(info[3]);
         email.setFont(new Font("Tahoma", Font.PLAIN, 12));
         email.setBounds(70, 170, 580, 50);
         panel.add(email);
 
-        JLabel name = new JLabel(getLastName()+", "+getFirstName());
+        JLabel name = new JLabel(info[1]+", "+info[2]);
         name.setFont(new Font("Tahoma", Font.PLAIN, 15));
         name.setBounds(70, 195, 580, 50);
         panel.add(name);
@@ -675,7 +676,8 @@ public class ClientGUI extends JFrame {
                 break;
 
             case( "login" ):
-                client.disconnect();
+                try { client.disconnect(); }
+                catch( Exception ignored ) {}
                 load( "connect" );
                 break;
 
@@ -716,7 +718,8 @@ public class ClientGUI extends JFrame {
     private void closeWindow() {
 
         logout();
-        if (client!=null) client.disconnect();
+        try{ client.disconnect(); }
+        catch( Exception ignored ) {}
 
     }
 
@@ -738,6 +741,7 @@ public class ClientGUI extends JFrame {
         try {
 
             client = new Client( this, IP );
+            System.out.println( "CONNECTED: "+ client.getIP() +"\n" );
             load(onSuccess);
 
         }
@@ -763,7 +767,7 @@ public class ClientGUI extends JFrame {
     }
     private void logout() {
 
-        if (client!=null) client.logout();
+        if ( client != null ) client.logout();
         loadLoginPage();
 
     }
@@ -779,25 +783,8 @@ public class ClientGUI extends JFrame {
     }
 
 
-    private String getUsername() {
-
-        return client.information()[0];
-
-    }
-    private String getEmail() {
-
-        return client.information()[1];
-
-    }
-    private String getFirstName() {
-
-        return client.information()[2];
-
-    }
-    private String getLastName() {
-
-        return client.information()[3];
-
+    private String[] getInfo() {
+        return client.information();
     }
 
 

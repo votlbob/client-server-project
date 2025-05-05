@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.Inet4Address;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class Client {
@@ -29,10 +31,13 @@ public class Client {
      System Preferences -> Network -> Advanced -> TCP/IP -> IPv4 address 192.168.1.14
 
     -- */
-    private String HOST = "192.168.56.1";
+    private String HOST;
+    private String SELF;
+
     // Self: 127.0.0.1
     //Reinhart: 192.168.56.1
     // Logan: 10.100.32.197
+
 
     // -- socket variable for peer to peer communication
     private Socket socket;
@@ -64,6 +69,9 @@ public class Client {
 
         GUI = initGUI;
         HOST = host;
+        SELF = Inet4Address.getLocalHost().getHostAddress();
+
+        System.out.println( "CONNECTING: "+ SELF +"\n" );
 
         // -- construct the peer to peer socket
         socket = new Socket(HOST, 8000);
@@ -76,7 +84,9 @@ public class Client {
 
     public String send( String _msg ) {
 
-        String rtnmsg = "";
+        System.out.println("SENDING: "+_msg);
+
+        String rtnmsg = "connection_invalid";
 
         try {
 
@@ -89,9 +99,10 @@ public class Client {
                 rtnmsg = datain.readLine();
             }
 
+        } catch (SocketException | NullPointerException e) {
+            rtnmsg = "connection_invalid";
         } catch (IOException e) {
             e.printStackTrace();
-            rtnmsg = "connection_invalid";
         }
 
         System.out.println("RETURNED: "+rtnmsg+"\n");
@@ -107,9 +118,7 @@ public class Client {
     }
     public String logout() {
 
-        //return disconnect();
-        send( "logout" );
-        return "confirm";
+        return send( "logout" );
 
     }
     public String register( String... info ) {
@@ -135,6 +144,8 @@ public class Client {
     }
     public void delete() {
 
+        send( "delete:"+SELF );
+
     }
 
     public boolean checkVerificationCode( int code ) {
@@ -149,5 +160,8 @@ public class Client {
 
     }
 
+    public String getIP() {
+        return SELF;
+    }
 
 }

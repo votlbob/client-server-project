@@ -223,7 +223,7 @@ public class Table {
                 if (s.trim().charAt(s.length() - 1) == ',') {
                     s = s.substring(0, s.lastIndexOf(','));
                 }
-                ss = s.split(",");
+                ss = s.split(",",-1);
                 Record rec = new Record();
                 for (int i = 0; i < fnames.size(); ++i) {
                     rec.addField(new Field(fnames.get(i), ss[i].trim()));

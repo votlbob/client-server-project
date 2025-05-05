@@ -4,11 +4,17 @@ import server.database.DBMScsv;
 import server.database.Record;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class Server {
@@ -16,29 +22,25 @@ public class Server {
     
     volatile boolean status;
 
-    private int PORT;
-    private int nextId = 0;
+    private final int PORT;
+    private static final String UNAUTHORIZED = "!";
 
-    private String filename = "C:\\Users\\fabou\\IdeaProjects\\Client Server Project\\src\\server\\database\\registry.csv";
-    private DBMScsv database;
+    private final DBMScsv database;
 
     private ServerSocket serversocket;
 
     private Vector<ConnectionThread> clientconnections;
 
-    
 
-    public Server( int port ) {
+    private Thread MAIN;
+
+
+    public Server( int port,
+                   DBMScsv database ) {
 
         status = false;
 
-        try {
-            database = new DBMScsv();
-            database.connect( filename );
-        } catch(Exception e) {
-            e.printStackTrace();
-            shutdown();
-        }
+        this.database = database;
 
         PORT = port;
 
@@ -48,10 +50,23 @@ public class Server {
 
 
     public void peerconnection( Socket socket ) {
+
+        String socketIP = socket.getInetAddress().getHostAddress();
+        String selfID = "127.0.0.1";
+        String serverIP = serversocket.getInetAddress().getHostAddress();
+        try { serverIP = Inet4Address.getLocalHost().getHostAddress(); }
+        catch( Exception e ) { e.printStackTrace(); }
+
+        String connectionID = (socketIP.equals(selfID))?serverIP:socketIP;
+
+        /*System.out.println( "SOCKETIP: "+socketIP );
+        System.out.println( "SELFIP:   "+selfID );
+        System.out.println( "SERVERIP: "+serverIP );*/
+
         // -- when a client arrives, create a thread for their communication
-        ConnectionThread connection = new ConnectionThread( nextId,
+        ConnectionThread connection = new ConnectionThread( connectionID,
                                                             socket,
-                                                     this);
+                                                            this);
 
         // -- add the thread to the active client threads list
         clientconnections.add(connection);
@@ -59,74 +74,118 @@ public class Server {
         // -- start the thread
         connection.start();
 
-        // -- place some text in the area to let the server operator know
-        //    what is going on
-        System.out.println("SERVER: connection received for id " + nextId + "\n");
-        ++nextId;
+        System.out.println("SERVER: connection received for id " + connection.id() + "\n");
+
     }
 
 
     // -- called by a ServerThread when a client is terminated
-    public void removeID( int id ) {
-        // -- find the object belonging to the client thread being terminated
-        for (int i = 0; i < clientconnections.size(); ++i) {
-            ConnectionThread cc = clientconnections.get(i);
-            long x = cc.getId();
-            if (x == id) {
-                // -- remove it from the active threads list
-                //    the thread will terminate itself
-                clientconnections.remove(i);
-
-                // -- place some text in the area to let the server operator know
-                //    what is going on
-                System.out.println("SERVER: connection closed for client id " + id + "\n");
-                break;
-            }
-        }
-
-
-    }
-
 
     public void start() {
-
         if ( !status ) {
+
+            System.out.println( "SERVER START METHOD" );
 
             status = true;
 
-            new Thread(() -> {
+            try {
 
-                try {
+                serversocket = new ServerSocket(PORT);   //PORT = 8000
 
-                    serversocket = new ServerSocket(PORT);   //PORT = 8000
 
-                    while (status) {
-                        // -- block until a client comes along
-                        Socket socket = serversocket.accept();
+                MAIN = new Thread( () -> {
+                    try {
+                        while (status) {
 
-                        // -- connection accepted, create a peer-to-peer socket
-                        //    between the server (thread) and client
-                        peerconnection(socket);
+
+                            if (Thread.currentThread().isInterrupted()) {
+
+                                status = false;
+                                throw new InterruptedException();
+
+                            } else {
+                                try {
+
+                                    Socket socket = serversocket.accept();
+                                    // -- connection accepted, create a peer-to-peer socket
+                                    //    between the server (thread) and client
+                                    peerconnection(socket);
+
+                                } catch (SocketException e) {
+                                    status = false;
+                                    Thread.currentThread().interrupt();
+                                    System.out.println("\n" + "SOCKET CLOSED" + "\n");
+                                }
+
+                            }
+
+                        }
+                        System.out.println("SERVER: offline");
+
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        status = false;
+                    } catch (InterruptedException e) {
+                        System.out.println( "SUPER INTERRUPTED" );
+                        Thread.currentThread().interrupt();
                     }
-                    System.out.println("exited from here");
 
-                } catch( IOException e ) {
-                    e.printStackTrace();
-                }
+                });
+                MAIN.start();
 
-            }).start();
+
+                System.out.println("SERVER: online\n");
+
+
+            } catch( IOException e ) {
+                status = false;
+                System.out.println( "SERVER FAILED TO START" );
+                e.printStackTrace();
+            }
+
 
         }
-
     }
-    public void stop() {
+    public boolean stop() {
 
-        for (ConnectionThread c : clientconnections) c.interrupt();
-        clientconnections = new Vector<ConnectionThread>();
+        if (status) {
 
-        System.out.print(status);
-        if ( status ) { status = false; }
-        System.out.println(" -> "+status);
+            try {
+                System.out.println("HERE");
+                serversocket.close();
+            } catch (IOException e) {
+                System.out.println("BRUH");
+            }
+
+            try {
+
+                status = false;
+
+                System.out.println("REALLY HERE");
+
+                serversocket.close();
+                removeAll();
+                MAIN.interrupt();
+                Thread.currentThread().interrupt();
+
+
+                System.out.print(status);
+                if (status) {
+                    status = false;
+                }
+                System.out.println(" -> " + status);
+
+                return true;
+
+            } catch (Exception e) {
+                System.out.println("SERVER FAILED TO CLOSE");
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        return false;
 
     }
     public void restart() {
@@ -138,15 +197,17 @@ public class Server {
         System.exit(1);
     }
 
-
     public boolean login( String username,
-                          String password ) {
+                          String password,
+                          String ip ) {
 
         Record user;
 
         try {
 
             user = database.select("USERNAME=" + username).get(0);
+            database.update( "USERNAME="+username,
+                             "IP="+ip );
 
         } catch( IndexOutOfBoundsException e ) {
             System.out.println( "user doesn't exist" );
@@ -154,6 +215,14 @@ public class Server {
         }
 
         return password.equals( user.getValue("PASSWORD") );
+
+    }
+
+    public boolean logout( String ip ) {
+
+        return database.update("IP=" + ip,
+                "IP=") != null;
+
 
     }
     public String register( String username,
@@ -172,13 +241,7 @@ public class Server {
                                                 "LAST="+last,
                                                 "EMAIL="+email,
                                                 "PASSWORD="+password );
-                        try {
-                            database.disconnect();
-                            database.connect( filename );
-                        } catch( Exception e ) {
-                            e.printStackTrace();
-                            shutdown();
-                        }
+                        database.refresh();
 
                         return "confirm";
 
@@ -188,22 +251,60 @@ public class Server {
         } return "username_format_error";
 
     }
-    public Record get( String username ) {
-        return database.select("USERNAME="+username).get(0);
+
+
+    public Record get( String IP ) {
+        return database.select("IP="+IP).get(0);
     }
-    public void remove( String username ) {
+    public boolean remove( String id ) {
+
+        for ( ConnectionThread connection : clientconnections ) {
+
+            if ( connection.id().equals( id ) ) {
+
+                connection.interrupt();
+                clientconnections.remove( connection );
+
+                System.out.println( "SERVER: connection closed for client id " + id + "\n" );
+                return true;
+
+            }
+
+        }
+
+        return false;
 
     }
-    public void delete( String username ) {
+    public void removeAll() {
+
+        for ( ConnectionThread connection : clientconnections ) {
+            connection.interrupt();
+        }
+        clientconnections = new Vector<ConnectionThread>();
+
+    }
+    public boolean delete( String IP ) {
+
+        return database.delete("IP="+IP) != null;
 
     }
 
 
     public boolean checkUsernameFormat( String username ) {
-        return true;
+
+        String regex = "^(?=.*[a-zA-Z])[A-Za-z\\d_]{4,}$";
+        Pattern pattern = Pattern.compile(regex);
+
+        return pattern.matcher( username ).matches();
+
     }
     public boolean checkPasswordFormat( String password ) {
-        return true;
+
+        String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
+        Pattern pattern = Pattern.compile(regex);
+
+        return pattern.matcher( password ).matches();
+
     }
     public boolean isAvailable( String fieldspec ) {
 
@@ -225,10 +326,14 @@ public class Server {
 
 
 
-    public static void main (String args[]) {
+/*    public static void main (String args[]) {
 
         new Server( 8000 );
 
+    }*/
+
+    public Vector<ConnectionThread> getConnections() {
+        return clientconnections;
     }
 
 
