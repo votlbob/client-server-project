@@ -198,8 +198,6 @@ public class ConnectionThread extends Thread {
                 info[3],
                 info[4] );
 
-        if ( result.equals("confirm") )
-
         send( result );
 
     }
