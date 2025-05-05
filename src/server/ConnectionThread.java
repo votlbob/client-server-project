@@ -116,6 +116,10 @@ public class ConnectionThread extends Thread {
                                 requestCode( txt[1] );
                                 break;
 
+                            case( "change" ):
+                                send( server.changePassword(txt[1], txt[2]) );
+                                break;
+
                             default:
                                 unknownCommand();
                                 break;
@@ -188,11 +192,15 @@ public class ConnectionThread extends Thread {
     }
     private void register( String... info ) throws IOException {
 
-        send( server.register( info[0],
-                               info[1],
-                               info[2],
-                               info[3],
-                               info[4] ) );
+        String result = server.register( info[0],
+                info[1],
+                info[2],
+                info[3],
+                info[4] );
+
+        if ( result.equals("confirm") )
+
+        send( result );
 
     }
     private void sendUserInfo() throws IOException {

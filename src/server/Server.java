@@ -25,14 +25,14 @@ import javax.mail.internet.*;
 
 public class Server {
     
-    
+    private ServerGUI GUI;
+
     volatile boolean status;
 
     private final int PORT;
-    private static final String UNAUTHORIZED = "!";
 
-    private final DBMScsv database;
-    private final DBMScsv log;
+    volatile DBMScsv database;
+    //private final DBMScsv log;
 
     private ServerSocket serversocket;
 
@@ -45,12 +45,13 @@ public class Server {
 
     public Server( int port,
                    DBMScsv database,
-                   DBMScsv log ) {
+                   ServerGUI GUI ) {
 
         status = false;
 
         this.database = database;
-        this.log = log;
+        this.GUI = GUI;
+        //this.log = log;
 
         PORT = port;
 
@@ -253,6 +254,7 @@ public class Server {
                                                     "EMAIL="+email,
                                                     "PASSWORD="+password );
                             database.refresh();
+                            GUI.updateUserCount();
 
                             return "confirm";
 
@@ -266,7 +268,9 @@ public class Server {
 
 
     public Record get( String IP ) {
+
         return database.select("IP="+IP).get(0);
+
     }
     public boolean remove( String id ) {
 
@@ -297,14 +301,16 @@ public class Server {
     }
     public boolean delete( String IP ) {
 
-        return database.delete("IP="+IP) != null;
+        ArrayList<Record> result = database.delete("IP="+IP);
+        GUI.updateUserCount();
+        return result != null;
 
     }
 
     public void log( String message ) {
 
         System.out.println("SHOULD BE LOGGED: "+message+"\n\n");
-        log.log(message);
+        //log.log(message);
 
     }
 
@@ -385,6 +391,13 @@ public class Server {
         }
 
     }
+    public boolean changePassword( String IP, String new_password ) {
+
+        ArrayList<Record> updated = database.update( "IP="+IP, "PASSWORD="+new_password );
+        logout(IP);
+        return updated != null;
+
+    }
 
     
     public int getPort() {
@@ -400,11 +413,6 @@ public class Server {
 
 
 
-/*    public static void main (String args[]) {
-
-        new Server( 8000 );
-
-    }*/
 
     public Vector<ConnectionThread> getConnections() {
         return clientconnections;

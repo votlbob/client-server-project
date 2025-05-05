@@ -28,7 +28,8 @@ public class ServerGUI extends JFrame {
                     viewLogButton;
     private JLabel addressLabel,
                    portLabel,
-                   serverStatusLabel;
+                   serverStatusLabel,
+                   registeredUsersLabel;
     private JTextField portField;
     private DefaultTableModel tableModel,
                               loggerTableModel;
@@ -39,7 +40,7 @@ public class ServerGUI extends JFrame {
     private static final File file = new File( filename );
     private static final File logfile = new File( logfilename );
 
-    public final DBMScsv database = new DBMScsv();
+    volatile DBMScsv database = new DBMScsv();
     public final DBMScsv log = new DBMScsv();
 
 
@@ -66,7 +67,7 @@ public class ServerGUI extends JFrame {
             e.printStackTrace();
         }
 
-        server = new Server( 8000, database, log );
+        server = new Server( 8000, database, this );
         serverUp = false;
 
         setTitle("Server GUI");
@@ -117,6 +118,10 @@ public class ServerGUI extends JFrame {
         //buttonPanel.add(viewLogButton);
         panel.add(buttonPanel);
 
+        registeredUsersLabel = new JLabel("Registered Users: "+database.getTable().getTable().size());
+        registeredUsersLabel.setBounds(10,450,50,20);
+        panel.add(registeredUsersLabel);
+
         setVisible(true);
 
     }
@@ -143,6 +148,7 @@ public class ServerGUI extends JFrame {
     private void registryButtonClicked() {
 
         JFrame registry = new JFrame();
+        Thread REGISTRY;
 
         registry.setBounds(100, 100, 580, 384);
         registry.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -160,10 +166,10 @@ public class ServerGUI extends JFrame {
         registryPanel.add(registryTableScrollPane);
 
 
-        new Thread(() -> {
+        REGISTRY = new Thread(() -> {
             long lastModified = 0;
             while (true) {
-                if (file.exists() && file.lastModified() != lastModified) {
+                if (file.exists() && (file.lastModified() != lastModified)) {
                     lastModified = file.lastModified();
 
                     database.refresh();
@@ -185,12 +191,22 @@ public class ServerGUI extends JFrame {
 
                 }
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(200);
                 } catch (InterruptedException e) {
                     break;
                 }
             }
-        }).start();
+        });
+        REGISTRY.start();
+
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                REGISTRY.interrupt();
+                Thread.currentThread().interrupt();
+            }
+        });
 
 
         registry.setVisible( true );
@@ -237,6 +253,20 @@ public class ServerGUI extends JFrame {
         logger.setVisible( true );
 
     }
+    /*private void databaseButtonClicked() {
+
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                try {
+                    DBMSApp window = new DBMSApp();
+                    window.frame.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+    }*/
 
 
     public ArrayList<String[]> refreshClientTable() {
@@ -300,6 +330,11 @@ public class ServerGUI extends JFrame {
 
 
         }
+
+    }
+    public void updateUserCount() {
+
+        registeredUsersLabel.setText("Registered Users: "+database.getTable().getTable().size());
 
     }
     public void startFileMonitor() {

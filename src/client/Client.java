@@ -133,7 +133,7 @@ public class Client {
     }
     public boolean changePassword( String password ) {
 
-        return true;
+        return send( "change:"+SELF+":"+password  ).equals("confirm");
 
     }
     public String disconnect() {
