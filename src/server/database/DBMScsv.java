@@ -92,16 +92,19 @@ public class DBMScsv extends DBMSAbstract {
         // -- varargs are used the same as arrays
         Record r = new Record();
 
+
         for (int i = 0; i < args.length; ++i) {
-            String[] pieces = args[i].split("=", -1 );
+            String[] pieces = args[i].split("=", -1);
             for (int j = 0; j < pieces.length; ++j) {
                 pieces[j] = pieces[j].trim();
             }
             Field f = new Field(pieces[0], pieces[1]);
             r.addField(f);
         }
-        Field emptyIP = new Field( "IP", "" );
-        r.addField( emptyIP );
+
+        Field emptyIP = new Field("IP", "");
+        r.addField(emptyIP);
+
 
         try {
             table.addRecord(r);
@@ -110,6 +113,23 @@ public class DBMScsv extends DBMSAbstract {
             throw e;
         }
         refresh();
+    }
+    public void log( String message ) {
+
+        Record r = new Record();
+
+        Field f = new Field("MESSAGE", message);
+        r.addField(f);
+
+
+        try {
+            table.addRecord(r);
+        }
+        catch (IllegalArgumentException e) {
+            throw e;
+        }
+        refresh();
+
     }
     @Override
     public ArrayList<Record> delete(String fieldspec) {

@@ -26,21 +26,24 @@ public class Server {
     private static final String UNAUTHORIZED = "!";
 
     private final DBMScsv database;
+    private final DBMScsv log;
 
     private ServerSocket serversocket;
 
-    private Vector<ConnectionThread> clientconnections;
+    volatile Vector<ConnectionThread> clientconnections;
 
 
     private Thread MAIN;
 
 
     public Server( int port,
-                   DBMScsv database ) {
+                   DBMScsv database,
+                   DBMScsv log ) {
 
         status = false;
 
         this.database = database;
+        this.log = log;
 
         PORT = port;
 
@@ -233,20 +236,22 @@ public class Server {
 
         if ( checkUsernameFormat( username ) ) {
             if ( checkPasswordFormat( password ) ) {
-                if ( isAvailable( "USERNAME="+username ) ) {
-                    if ( isAvailable( "EMAIL="+email ) ) {
+                if ( checkEmailFormat( email ) ) {
+                    if ( isAvailable( "USERNAME="+username ) ) {
+                        if ( isAvailable( "EMAIL="+email ) ) {
 
-                        database.insert( "USERNAME="+username,
-                                                "FIRST="+first,
-                                                "LAST="+last,
-                                                "EMAIL="+email,
-                                                "PASSWORD="+password );
-                        database.refresh();
+                            database.insert( "USERNAME="+username,
+                                                    "FIRST="+first,
+                                                    "LAST="+last,
+                                                    "EMAIL="+email,
+                                                    "PASSWORD="+password );
+                            database.refresh();
 
-                        return "confirm";
+                            return "confirm";
 
-                    } return "email_in_use";
-                } return "username_in_use";
+                        } return "email_in_use";
+                    } return "username_in_use";
+                } return "email_format_error";
             } return "password_format_error";
         } return "username_format_error";
 
@@ -289,6 +294,13 @@ public class Server {
 
     }
 
+    public void log( String message ) {
+
+        System.out.println("SHOULD BE LOGGED: "+message+"\n\n");
+        log.log(message);
+
+    }
+
 
     public boolean checkUsernameFormat( String username ) {
 
@@ -304,6 +316,14 @@ public class Server {
         Pattern pattern = Pattern.compile(regex);
 
         return pattern.matcher( password ).matches();
+
+    }
+    public boolean checkEmailFormat( String email ) {
+
+        String regex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+        Pattern pattern = Pattern.compile(regex);
+
+        return pattern.matcher( email ).matches();
 
     }
     public boolean isAvailable( String fieldspec ) {

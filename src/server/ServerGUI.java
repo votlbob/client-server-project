@@ -19,19 +19,28 @@ public class ServerGUI extends JFrame {
 
 
     private JPanel panel;
-    private JTable userTable;
+    private JTable userTable,
+                   loggerTable;
     private JButton startServerButton,
                     stopServerButton,
-                     restartServerButton;
+                    restartServerButton,
+                    registryButton,
+                    viewLogButton;
     private JLabel addressLabel,
                    portLabel,
                    serverStatusLabel;
     private JTextField portField;
-    private DefaultTableModel tableModel;
+    private DefaultTableModel tableModel,
+                              loggerTableModel;
 
     private static final String filename = "C:\\Users\\fabou\\IdeaProjects\\Client Server Project\\src\\server\\database\\registry.csv";
+    private static final String logfilename = "C:\\Users\\fabou\\IdeaProjects\\Client Server Project\\src\\server\\serverlog.csv";
+
     private static final File file = new File( filename );
+    private static final File logfile = new File( logfilename );
+
     public final DBMScsv database = new DBMScsv();
+    public final DBMScsv log = new DBMScsv();
 
 
     public ServerGUI() {
@@ -52,16 +61,17 @@ public class ServerGUI extends JFrame {
 
         try {
             database.connect( filename );
+            log.connect( logfilename );
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
-        server = new Server( 8000, database );
+        server = new Server( 8000, database, log );
         serverUp = false;
 
         setTitle("Server GUI");
         setSize(580, 384);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         loadPanel();
 
@@ -74,12 +84,8 @@ public class ServerGUI extends JFrame {
 
         serverStatusLabel = new JLabel("SERVER STATUS: " + (serverUp?"online":"offline") );
         serverStatusLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        panel.add(serverStatusLabel, BorderLayout.WEST);
-
-        portLabel = new JLabel("PORT: " + server.getPort() );
-        portLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        panel.add(portLabel, BorderLayout.EAST);
-        //portField = new JTextField(String.valueOf( server.getPort() ));
+        serverStatusLabel.setBounds( 15, 15, 60, 20 );
+        panel.add(serverStatusLabel);
 
 
         // === Table Panel (User Table) ===
@@ -87,8 +93,8 @@ public class ServerGUI extends JFrame {
         tableModel = new DefaultTableModel(columnNames, 0);
         userTable = new JTable(tableModel);
         JScrollPane tableScrollPane = new JScrollPane(userTable);
-        tableScrollPane.setBounds( 0, 200, 580, 200 );
-        tableScrollPane.setPreferredSize(new Dimension(580, 250));
+        tableScrollPane.setBounds( 10, 200, 560, 200 );
+        tableScrollPane.setPreferredSize(new Dimension(560, 250));
         panel.add(tableScrollPane);
         updateDisplayTable();
         startFileMonitor();
@@ -97,16 +103,19 @@ public class ServerGUI extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 10));
         startServerButton = new JButton("Start Server");
         stopServerButton = new JButton("Stop Server");
-        restartServerButton = new JButton("Restart Server");
+        registryButton = new JButton("Registry");
+        viewLogButton = new JButton("View Log");
 
         startServerButton.addActionListener(e -> startServerButtonClicked());
         stopServerButton.addActionListener(e -> stopServerButtonClicked());
-        restartServerButton.addActionListener(e ->  restartServerButtonClicked());
+        registryButton.addActionListener(e ->  registryButtonClicked());
+        viewLogButton.addActionListener(e ->  viewLogButtonClicked());
 
         buttonPanel.add(startServerButton);
         buttonPanel.add(stopServerButton);
-        buttonPanel.add(restartServerButton);
-        panel.add(buttonPanel, BorderLayout.SOUTH);
+        buttonPanel.add(registryButton);
+        //buttonPanel.add(viewLogButton);
+        panel.add(buttonPanel);
 
         setVisible(true);
 
@@ -120,12 +129,112 @@ public class ServerGUI extends JFrame {
     }
     private void stopServerButtonClicked() {
 
+        serverUp = false;
+        serverStatusLabel.setText( "SERVER STATUS: offline" );
+
         stopServer();
 
     }
     private void restartServerButtonClicked() {
 
         restartServer();
+
+    }
+    private void registryButtonClicked() {
+
+        JFrame registry = new JFrame();
+
+        registry.setBounds(100, 100, 580, 384);
+        registry.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+
+        JPanel registryPanel = new JPanel();
+
+
+        String[] columnNames = {"username", "last", "first", "email", "password", "ip"};
+        DefaultTableModel registryTableModel = new DefaultTableModel(columnNames, 0);
+        JTable registryUserTable = new JTable(registryTableModel);
+        JScrollPane registryTableScrollPane = new JScrollPane(registryUserTable);
+        registryTableScrollPane.setBounds( 10, 200, 560, 200 );
+        registryTableScrollPane.setPreferredSize(new Dimension(560, 250));
+        registryPanel.add(registryTableScrollPane);
+
+
+        new Thread(() -> {
+            long lastModified = 0;
+            while (true) {
+                if (file.exists() && file.lastModified() != lastModified) {
+                    lastModified = file.lastModified();
+
+                    database.refresh();
+                    registryTableModel.setRowCount(0);
+
+                    for ( Record user : database.getTable().getTable() ) {
+
+                        String[] info = new String[]{ user.getValue("USERNAME"),
+                                user.getValue("LAST"),
+                                user.getValue("FIRST"),
+                                user.getValue("EMAIL"),
+                                user.getValue("PASSWORD"),
+                                user.getValue("IP") };
+
+                        registryTableModel.addRow( info );
+
+                    }
+
+
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        }).start();
+
+
+        registry.setVisible( true );
+        registry.getContentPane().add( registryPanel );
+
+    }
+    private void viewLogButtonClicked() {
+
+        JFrame logger = new JFrame();
+
+        logger.setBounds(100, 100, 580, 384);
+        logger.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+
+        JPanel loggerPanel = new JPanel();
+
+
+        String[] columnNames = {"SERVER LOG"};
+        DefaultTableModel loggerTableModel = new DefaultTableModel(columnNames, 0);
+        JTable loggerTable = new JTable(loggerTableModel);
+        JScrollPane loggerTableScrollPane = new JScrollPane(loggerTable);
+        loggerTableScrollPane.setBounds( 0, 200, 580, 200 );
+        loggerTableScrollPane.setPreferredSize(new Dimension(580, 250));
+        loggerPanel.add(loggerTableScrollPane);
+
+
+        new Thread(() -> {
+            long lastModified = 0;
+            while (true) {
+                if (logfile.exists() && logfile.lastModified() != lastModified) {
+                    lastModified = logfile.lastModified();
+                    SwingUtilities.invokeLater( this::updateLogTable );
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        }).start();
+
+
+        logger.getContentPane().add( loggerPanel );
+        logger.setVisible( true );
 
     }
 
@@ -139,6 +248,8 @@ public class ServerGUI extends JFrame {
 
     private void startServer() {
 
+        serverUp=true;
+        serverStatusLabel.setText( "SERVER STATUS: online" );
         server.start();
 
     }
@@ -172,6 +283,21 @@ public class ServerGUI extends JFrame {
 
             }
             tableModel.addRow( info );
+
+        }
+
+    }
+    public void updateLogTable() {
+
+        log.refresh();
+        loggerTableModel.setRowCount(0);
+
+        for ( Record user : database.getTable().getTable() ) {
+
+
+            String[] info = new String[]{ ""+user.getFields().size() };
+            loggerTableModel.addRow( info );
+
 
         }
 

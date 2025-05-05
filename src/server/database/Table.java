@@ -131,7 +131,12 @@ public class Table {
         }
 
         // -- get primary key value from record being added
-        String pkeyval = r.getValue(primarykey);
+        String pkeyval;
+        if ( r.getFields().size()==1 ) {
+            pkeyval = "SUPERCALAFRAGILISTIC";
+        } else {
+            pkeyval = r.getValue(primarykey);
+        }
 
         // -- make sure the primary key value is not duplicated in the table
         for (Record rec : table) {

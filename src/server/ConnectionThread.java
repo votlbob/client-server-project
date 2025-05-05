@@ -201,8 +201,13 @@ public class ConnectionThread extends Thread {
     private void send( String _msg ) throws IOException {
         log( "SENDING: "+_msg );
         log( "TO: "+ clientIP +"\n" );
-        dataout.writeBytes(_msg + "\n");
-        dataout.flush();
+        try {
+            dataout.writeBytes(_msg + "\n");
+            dataout.flush();
+        } catch( SocketException ignored ) {
+            datain.close();
+            dataout.close();
+        }
     }
     private void send( boolean _msg ) throws IOException {
         send( _msg?"confirm":"deny" );
@@ -211,6 +216,7 @@ public class ConnectionThread extends Thread {
 
     private void log( String message ) {
 
+        server.log( message );
         System.out.println( message );
 
     }
