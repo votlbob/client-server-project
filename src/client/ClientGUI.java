@@ -77,7 +77,7 @@ public class ClientGUI extends JFrame {
 
         __init__();
 
-        connect( "127.0.0.1", "login");
+        //connect( "127.0.0.1", "login");
 
     }
 
