@@ -9,6 +9,7 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.*;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class ServerGUI extends JFrame {
@@ -34,8 +35,9 @@ public class ServerGUI extends JFrame {
     private DefaultTableModel tableModel,
                               loggerTableModel;
 
-    private static final String filename = "C:\\Users\\fabou\\IdeaProjects\\Client Server Project\\src\\server\\database\\registry.csv";
-    private static final String logfilename = "C:\\Users\\fabou\\IdeaProjects\\Client Server Project\\src\\server\\serverlog.csv";
+    private static final String filename = Paths.get(System.getProperty("user.dir"), "src", "main", "java", "server", "database", "registry.csv").toString();
+    private static final String logfilename = Paths.get(System.getProperty("user.dir"), "src", "main", "java", "server", "serverlog.csv").toString();
+
 
     private static final File file = new File( filename );
     private static final File logfile = new File( logfilename );

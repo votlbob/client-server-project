@@ -598,45 +598,51 @@ public class ClientGUI extends JFrame {
 
     }
     private void registerButtonClicked() {
+        String password = new String(passwordField.getPassword());
+        String confirmPassword = new String(newPasswordField.getPassword());
 
-        if ( passwordField.getPassword().length != 0
-                            &&
-             Arrays.equals( passwordField.getPassword(),
-                            newPasswordField.getPassword() )) {
-
-            String s = register( usernameField.getText(),
-                    firstNameField.getText(),
-                    lastNameField.getText(),
-                    emailField.getText(),
-                    new String(passwordField.getPassword()) );
-
-            switch( s ) {
-
-                case( "confirm" ):
-                    loadLoginPage();
-                    JOptionPane.showMessageDialog( panel, "Register Successful" );
-                    break;
-
-                case( "deny" ):
-                    JOptionPane.showMessageDialog( panel, "Register Unsuccessful" );
-                    loadSignupPage();
-                    break;
-
-                case( "connection_invalid" ):
-                    JOptionPane.showMessageDialog( panel, "Connection Closed" );
-                    loadConnectPage();
-                    break;
-
-                default:
-                    JOptionPane.showMessageDialog( panel, getErrorMessage(s) );
-                    System.out.println( s );
-                    loadSignupPage();
-                    break;
-
-            }
-
+        // Basic validation
+        if (password.isEmpty() || !password.equals(confirmPassword)) {
+            JOptionPane.showMessageDialog(panel, "Passwords do not match or are empty.", "Invalid Password", JOptionPane.ERROR_MESSAGE);
+            return;
         }
 
+        // Strong password check: 8+ chars, A-Z, a-z, 0-9, special char
+        if (!password.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$")) {
+            JOptionPane.showMessageDialog(panel,
+                    "Password must be at least 8 characters and include uppercase, lowercase, digit, and special character.",
+                    "Weak Password",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String s = register(
+                usernameField.getText(),
+                firstNameField.getText(),
+                lastNameField.getText(),
+                emailField.getText(),
+                password
+        );
+
+        switch (s) {
+            case "confirm":
+                loadLoginPage();
+                JOptionPane.showMessageDialog(panel, "Register Successful");
+                break;
+            case "deny":
+                JOptionPane.showMessageDialog(panel, "Register Unsuccessful");
+                loadSignupPage();
+                break;
+            case "connection_invalid":
+                JOptionPane.showMessageDialog(panel, "Connection Closed");
+                loadConnectPage();
+                break;
+            default:
+                JOptionPane.showMessageDialog(panel, getErrorMessage(s));
+                System.out.println(s);
+                loadSignupPage();
+                break;
+        }
     }
     private void deleteAccountButtonClicked() {
 
