@@ -1,20 +1,28 @@
-package database;
+package server.database;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class DBMScsv extends DBMSAbstract {
 
 
-    @Override
-    public Table getTable() {
-        return table;
-    }
+    String filename;
 
+
+    public void refresh() {
+        try {
+            disconnect();
+            connect(filename);
+        } catch( Exception e ) { e.printStackTrace(); }
+    }
     @Override
     public void connect(String filename) throws FileNotFoundException {
+
+        this.filename = filename;
+
         try {
-            // -- database table will be held entirely in RAM
+            // -- server.database table will be held entirely in RAM
             table = new Table();
             table.readFromFile(filename);
             this.filename = filename;
@@ -23,7 +31,6 @@ public class DBMScsv extends DBMSAbstract {
             throw e;
         }
     }
-
     @Override
     public void disconnect() throws FileNotFoundException {
         if (table != null) {
@@ -36,21 +43,44 @@ public class DBMScsv extends DBMSAbstract {
         }
     }
 
+
+    @Override
+    public boolean contains(String fieldspec) {
+        ArrayList<Record> contains = this.select(fieldspec);
+
+        return contains.size() > 0;
+    }
+
     @Override
     public ArrayList<Record> select(String fieldspec) {
         ArrayList<Record> selections = new ArrayList<Record>();
         // -- get the column label and new value
-        String[] fields = fieldspec.split("=");
+        String[] fields = fieldspec.split("=", -1 );
         for (int i = 0; i < fields.length; ++i) {
             fields[i] = fields[i].trim();
         }
-        // -- find the location of the key in the table field names
-        int pos = findrecord(fields[0]);
 
         // -- find all records whose value matches that of the key
         for (Record r : table.getTable()) {
             String value = r.getValue(fields[0]);
-            if (value.equals(fields[1]) || (fields[1].equals("*"))) {
+            if (value.equals(fields[1])) {
+                selections.add(r);
+            }
+        }
+        return selections;
+    }
+    public ArrayList<Record> selectInverse(String fieldspec) {
+        ArrayList<Record> selections = new ArrayList<Record>();
+        // -- get the column label and new value
+        String[] fields = fieldspec.split("=", -1 );
+        for (int i = 0; i < fields.length; ++i) {
+            fields[i] = fields[i].trim();
+        }
+
+        // -- find all records whose value matches that of the key
+        for (Record r : table.getTable()) {
+            String value = r.getValue(fields[0]);
+            if (!value.equals(fields[1])) {
                 selections.add(r);
             }
         }
@@ -61,22 +91,46 @@ public class DBMScsv extends DBMSAbstract {
     public void insert(String... args) throws IllegalArgumentException {
         // -- varargs are used the same as arrays
         Record r = new Record();
+
+
         for (int i = 0; i < args.length; ++i) {
-            String[] pieces = args[i].split("=");
+            String[] pieces = args[i].split("=", -1);
             for (int j = 0; j < pieces.length; ++j) {
                 pieces[j] = pieces[j].trim();
             }
             Field f = new Field(pieces[0], pieces[1]);
             r.addField(f);
         }
+
+        Field emptyIP = new Field("IP", "");
+        r.addField(emptyIP);
+
+
         try {
             table.addRecord(r);
         }
         catch (IllegalArgumentException e) {
             throw e;
         }
+        refresh();
     }
+    public void log( String message ) {
 
+        Record r = new Record();
+
+        Field f = new Field("MESSAGE", message);
+        r.addField(f);
+
+
+        try {
+            table.addRecord(r);
+        }
+        catch (IllegalArgumentException e) {
+            throw e;
+        }
+        refresh();
+
+    }
     @Override
     public ArrayList<Record> delete(String fieldspec) {
         ArrayList<Record> deletions = this.select(fieldspec);
@@ -89,20 +143,14 @@ public class DBMScsv extends DBMSAbstract {
                 }
             }
         }
+
+        refresh();
         return deletions;
     }
-
-    @Override
-    public boolean contains(String fieldspec) {
-        ArrayList<Record> contains = this.select(fieldspec);
-
-        return contains.size() > 0;
-    }
-
     @Override
     public ArrayList<Record> update(String fieldspec, String newfieldspec) throws IllegalArgumentException {
         ArrayList<Record> updates = this.select(fieldspec);
-        String[] newfields = newfieldspec.split("=");
+        String[] newfields = newfieldspec.split("=", -1 );
         String updatekey = newfields[0].trim();
         String updatevalue = newfields[1].trim();
         if (updatekey.equals(table.getPrimaryKey())) {
@@ -117,27 +165,23 @@ public class DBMScsv extends DBMSAbstract {
                 }
             }
         }
+
+        refresh();
         return updates;
 
     }
 
+
+    @Override
+    public Table getTable() {
+        return table;
+    }
     @Override
     public String toString() {
         return table.toString();
     }
 
 
-    // -- find the position of the specified field in the table header
-    private int findrecord(String field) {
-        ArrayList<String> fieldnames = this.table.getFieldNames();
-        int pos = -1;
-        for (pos = 0; pos < fieldnames.size(); ++pos) {
-            if (field.toLowerCase().equals(fieldnames.get(pos).toLowerCase())) {
-                break;
-            }
-        }
-        return pos;
-    }
 
 
 }

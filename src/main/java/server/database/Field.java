@@ -1,4 +1,4 @@
-package database;
+package server.database;
 
 /**
  * Record field
@@ -8,12 +8,12 @@ public class Field {
     /**
      * field name (key)
      */
-    private String key;
+    private volatile String key;
 
     /**
      * field value
      */
-    private String value;
+    private volatile String value;
 
     /**
      * Constructor

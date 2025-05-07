@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.Inet4Address;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class Client {
@@ -12,7 +14,6 @@ public class Client {
     ClientGUI GUI;
 
     // -- port and host name of server
-    private int PORT = 8000;
 
     /* --
      For Windows
@@ -30,10 +31,13 @@ public class Client {
      System Preferences -> Network -> Advanced -> TCP/IP -> IPv4 address 192.168.1.14
 
     -- */
-    private String HOST = "192.168.56.1";
+    private String HOST;
+    private String SELF;
+
     // Self: 127.0.0.1
     //Reinhart: 192.168.56.1
     // Logan: 10.100.32.197
+
 
     // -- socket variable for peer to peer communication
     private Socket socket;
@@ -44,6 +48,19 @@ public class Client {
     private DataOutputStream dataout;
 
 
+    public Client (ClientGUI initGUI)
+            throws UnknownHostException,
+            IOException {
+
+        GUI = initGUI;
+
+        // -- construct the peer to peer socket
+        socket = new Socket(HOST, 8000);
+        // -- wrap the socket in stream I/O objects
+        datain = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        dataout = new DataOutputStream(socket.getOutputStream());
+
+    }
     public Client (ClientGUI initGUI,
                    String host)
             throws UnknownHostException,
@@ -51,28 +68,12 @@ public class Client {
 
         GUI = initGUI;
         HOST = host;
+        SELF = Inet4Address.getLocalHost().getHostAddress();
+
+        System.out.println( "CONNECTING: "+ SELF +"\n" );
 
         // -- construct the peer to peer socket
-        socket = new Socket(HOST, PORT);
-        // -- wrap the socket in stream I/O objects
-        datain = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        dataout = new DataOutputStream(socket.getOutputStream());
-
-    }
-
-    public Client (ClientGUI initGUI,
-                   String host,
-                   String port)
-            throws UnknownHostException,
-            IOException {
-
-        GUI = initGUI;
-        HOST = host;
-        PORT = Integer.parseInt( port );
-        System.out.println(PORT);
-
-        // -- construct the peer to peer socket
-        socket = new Socket(HOST, PORT);
+        socket = new Socket(HOST, 8000);
         // -- wrap the socket in stream I/O objects
         datain = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         dataout = new DataOutputStream(socket.getOutputStream());
@@ -80,22 +81,16 @@ public class Client {
     }
 
 
-    public String send (String _msg) {
+    public String send( String _msg ) {
 
-        String rtnmsg = "";
+        System.out.println("SENDING: "+_msg);
+
+        String rtnmsg = "connection_invalid";
 
         try {
-            // -- the server only receives String objects that are
-            //    terminated with a newline \n"
-            // -- send the String making sure to flush the buffer
+
             dataout.writeBytes(_msg + "\n");
             dataout.flush();
-
-            // -- receive the response from the server
-            //    The do/while makes this a blocking read. Normally BufferedReader.readLine() is non-blocking.
-            //    That is, if there is no String to read, it will read "". Doing it this way does not allow
-            //    that to occur. We must get a response from the server. Time out could be implemented with
-            //    a counter.
 
             rtnmsg = datain.readLine();
 
@@ -103,6 +98,8 @@ public class Client {
                 rtnmsg = datain.readLine();
             }
 
+        } catch (SocketException | NullPointerException e) {
+            rtnmsg = "connection_invalid";
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -112,42 +109,61 @@ public class Client {
 
     }
 
-    public boolean login( String username,
+    public String login( String username,
                           String password ) {
 
-        return send( "login:"+username+":"+password ).equals("c");
+        return send( "login:"+username+":"+password );
 
     }
-    public boolean register( String username,
-                             String password,
-                             String email ) {
-        return send( "register:"+username+":"+password+":"+email ).equals("c");
+    public String logout() {
+
+        return send( "logout" );
+
+    }
+    public String register( String... info ) {
+
+        String messageInfo = "";
+
+        for (String s : info) {
+            messageInfo += ":"+s;
+        }
+
+        return send( "register"+messageInfo );
+
     }
     public boolean changePassword( String password ) {
 
-        return true;
+        return send( "change:"+SELF+":"+password  ).equals("confirm");
 
     }
-    public void disconnect () {
+    public String disconnect() {
 
-        send("disconnect");
+        return send("disconnect");
 
     }
     public void delete() {
+
+        //send( "logout:"+SELF );
+        send( "delete:"+SELF );
 
     }
 
     public boolean checkVerificationCode( int code ) {
 
-        return true;
+        return( send( "check:"+code ).equals( "confirm" ) );
 
     }
 
     public String[] information() {
 
-        return new String[]{ "votlbob", "bitcoin.votlbob@gmail.com", "Logan", "Abounader" };
+        return send( "get" ).split(":", -1);
 
     }
 
+    public String getIP() {
+
+        return SELF;
+
+    }
 
 }

@@ -1,4 +1,4 @@
-package database;
+package server.database;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -12,14 +12,14 @@ import java.util.Scanner;
 public class Table {
 
     /**
-     * The path to the database file
+     * The path to the server.database file
      */
     private String databasefile = "";
 
     /**
-     * The list of records that comprise the database table
+     * The list of records that comprise the server.database table
      */
-    private ArrayList<Record> table;
+    private volatile ArrayList<Record> table;
 
     /**
      * The list of field names in a record
@@ -123,12 +123,20 @@ public class Table {
      * @throws IllegalArgumentException Thrown if the number of fields does not match the table or if the primary key is duplicated
      */
     public void addRecord(Record r) throws IllegalArgumentException {
+
+        System.out.println( "REGISTER: "+r );
+
         if (r.getNFields() != fieldnames.size()) {
             throw new IllegalArgumentException("mismatched number of fields");
         }
 
         // -- get primary key value from record being added
-        String pkeyval = r.getValue(primarykey);
+        String pkeyval;
+        if ( r.getFields().size()==1 ) {
+            pkeyval = "SUPERCALAFRAGILISTIC";
+        } else {
+            pkeyval = r.getValue(primarykey);
+        }
 
         // -- make sure the primary key value is not duplicated in the table
         for (Record rec : table) {
@@ -145,11 +153,11 @@ public class Table {
     }
 
     /**
-     * Write the database table to a CSV file
+     * Write the server.database table to a CSV file
      * @param filename The name of the file to be written
      * @throws FileNotFoundException Thrown if the file cannot be written
      */
-    public void writeToFile(String filename) throws FileNotFoundException {
+    public synchronized void writeToFile(String filename) throws FileNotFoundException {
         try {
             PrintWriter file = new PrintWriter(new File(filename));
             for (String s : fieldnames) {
@@ -174,60 +182,67 @@ public class Table {
     }
 
     /**
-     * Read the database table from a CSV file
+     * Read the server.database table from a CSV file
      * @param filename The name of the file
      * @throws FileNotFoundException Thrown if the file cannot be read
      */
-    public void readFromFile(String filename) throws FileNotFoundException {
+    public synchronized void readFromFile(String filename) throws FileNotFoundException {
         try {
             Scanner file = new Scanner(new File(filename));
 
             // -- read the field names
             ArrayList<String> fnames = new ArrayList<String>();
-            String s = file.nextLine();
-            // -- strip trailing comma if it exists
-            if (s.trim().charAt(s.length() - 1) == ',') {
-                s = s.substring(0, s.lastIndexOf(','));
-            }
-            String[] ss = s.split(",");
-            for (String fname : ss) {
-                fnames.add(fnames.size(), fname.trim());
-            }
-            // -- primary key is the first field listed
-            this.primarykey = ss[0].trim();
-            this.fieldnames = fnames;
+            String s = "";
+            if ( file.hasNextLine() ) {
 
 
-            // -- read the field data types
-            ArrayList<String> ftypes = new ArrayList<String>();
-            s = file.nextLine();
-            // -- strip trailing comma if it exists
-            if (s.trim().charAt(s.length() - 1) == ',') {
-                s = s.substring(0, s.lastIndexOf(','));
-            }
+                s = file.nextLine();
 
-            ss = s.split(",");
-            for (String ftype : ss) {
-                ftypes.add(ftypes.size(), ftype.trim());
-            }
-            this.fieldtypes = ftypes;
+                // -- strip trailing comma if it exists
+                if (s.trim().charAt(s.length() - 1) == ',') {
+                    s = s.substring(0, s.lastIndexOf(','));
+                }
+                String[] ss = s.split(",");
+                for (String fname : ss) {
+                    fnames.add(fnames.size(), fname.trim());
+                }
+                // -- primary key is the first field listed
+                this.primarykey = ss[0].trim();
+                this.fieldnames = fnames;
 
-            // -- read the records
-            ArrayList<Record> tbl = new ArrayList<Record>();
-            while (file.hasNext()) {
+
+                // -- read the field data types
+                ArrayList<String> ftypes = new ArrayList<String>();
                 s = file.nextLine();
                 // -- strip trailing comma if it exists
                 if (s.trim().charAt(s.length() - 1) == ',') {
                     s = s.substring(0, s.lastIndexOf(','));
                 }
+
                 ss = s.split(",");
-                Record rec = new Record();
-                for (int i = 0; i < fnames.size(); ++i) {
-                    rec.addField(new Field(fnames.get(i), ss[i].trim()));
+                for (String ftype : ss) {
+                    ftypes.add(ftypes.size(), ftype.trim());
                 }
-                tbl.add(rec);
+                this.fieldtypes = ftypes;
+
+                // -- read the records
+                ArrayList<Record> tbl = new ArrayList<Record>();
+                while (file.hasNext()) {
+                    s = file.nextLine();
+                    // -- strip trailing comma if it exists
+                    if (s.trim().charAt(s.length() - 1) == ',') {
+                        s = s.substring(0, s.lastIndexOf(','));
+                    }
+                    ss = s.split(",", -1);
+                    Record rec = new Record();
+                    for (int i = 0; i < fnames.size(); ++i) {
+                        rec.addField(new Field(fnames.get(i), ss[i].trim()));
+                    }
+                    tbl.add(rec);
+                }
+                this.table = tbl;
+
             }
-            this.table = tbl;
 
             file.close();
         }

@@ -1,4 +1,4 @@
-package database;
+package server.database;
 
 import java.util.ArrayList;
 
@@ -10,7 +10,7 @@ public class Record {
     /**
      * List of key/value pairs (fields) that comprise the record
      */
-    private ArrayList<Field> fields;
+    private volatile ArrayList<Field> fields;
 
     /**
      * Constructor
@@ -98,12 +98,11 @@ public class Record {
 
     @Override
     public String toString() {
-        String s = "[";
+        String s = ""+fields.get(0).getValue();
 
-        for (Field f : fields) {
-            s += f + ", ";
+        for (int i=1 ; i<fields.size() ; i++) {
+            s += ":"+fields.get(i).getValue();
         }
-        s += "]";
         return s;
     }
 
