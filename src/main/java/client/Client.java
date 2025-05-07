@@ -143,6 +143,7 @@ public class Client {
     }
     public void delete() {
 
+        //send( "logout:"+SELF );
         send( "delete:"+SELF );
 
     }

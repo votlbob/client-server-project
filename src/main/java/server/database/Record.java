@@ -10,7 +10,7 @@ public class Record {
     /**
      * List of key/value pairs (fields) that comprise the record
      */
-    private ArrayList<Field> fields;
+    private volatile ArrayList<Field> fields;
 
     /**
      * Constructor

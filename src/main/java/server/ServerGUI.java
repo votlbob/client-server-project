@@ -149,7 +149,7 @@ public class ServerGUI extends JFrame {
     }
     private void registryButtonClicked() {
 
-        JFrame registry = new JFrame();
+        JDialog registry = new JDialog(this,false);
         Thread REGISTRY;
 
         registry.setBounds(100, 100, 580, 384);
@@ -210,9 +210,8 @@ public class ServerGUI extends JFrame {
             }
         });
 
-
-        registry.setVisible( true );
         registry.getContentPane().add( registryPanel );
+        registry.setVisible( true );
 
     }
     private void viewLogButtonClicked() {

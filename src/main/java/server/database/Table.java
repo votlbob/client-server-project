@@ -19,7 +19,7 @@ public class Table {
     /**
      * The list of records that comprise the server.database table
      */
-    private ArrayList<Record> table;
+    private volatile ArrayList<Record> table;
 
     /**
      * The list of field names in a record
@@ -157,7 +157,7 @@ public class Table {
      * @param filename The name of the file to be written
      * @throws FileNotFoundException Thrown if the file cannot be written
      */
-    public void writeToFile(String filename) throws FileNotFoundException {
+    public synchronized void writeToFile(String filename) throws FileNotFoundException {
         try {
             PrintWriter file = new PrintWriter(new File(filename));
             for (String s : fieldnames) {
@@ -186,7 +186,7 @@ public class Table {
      * @param filename The name of the file
      * @throws FileNotFoundException Thrown if the file cannot be read
      */
-    public void readFromFile(String filename) throws FileNotFoundException {
+    public synchronized void readFromFile(String filename) throws FileNotFoundException {
         try {
             Scanner file = new Scanner(new File(filename));
 
