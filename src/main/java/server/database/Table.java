@@ -19,7 +19,7 @@ public class Table {
     /**
      * The list of records that comprise the server.database table
      */
-    private ArrayList<Record> table;
+    private volatile ArrayList<Record> table;
 
     /**
      * The list of field names in a record

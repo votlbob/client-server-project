@@ -266,7 +266,7 @@ public class Server {
     }
 
 
-    public Record get( String IP ) {
+    public synchronized Record get( String IP ) {
 
         return database.select("IP="+IP).get(0);
 
@@ -298,7 +298,7 @@ public class Server {
         clientconnections = new Vector<ConnectionThread>();
 
     }
-    public boolean delete( String IP ) {
+    public synchronized boolean delete( String IP ) {
 
         ArrayList<Record> result = database.delete("IP="+IP);
         GUI.updateUserCount();
