@@ -74,7 +74,7 @@ public class Server {
         System.out.println( "SERVERIP: "+serverIP );*/
 
         // -- when a client arrives, create a thread for their communication
-        ConnectionThread connection = new ConnectionThread( connectionID,
+        ConnectionThread connection = new ConnectionThread( connectionID+getInstance(connectionID),
                                                             socket,
                                                             this);
 
@@ -93,8 +93,6 @@ public class Server {
 
     public void start() {
         if ( !status ) {
-
-            System.out.println( "SERVER START METHOD" );
 
             status = true;
 
@@ -124,7 +122,6 @@ public class Server {
                                 } catch (SocketException e) {
                                     status = false;
                                     Thread.currentThread().interrupt();
-                                    System.out.println("\n" + "SOCKET CLOSED" + "\n");
                                 }
 
                             }
@@ -162,10 +159,9 @@ public class Server {
         if (status) {
 
             try {
-                System.out.println("HERE");
                 serversocket.close();
             } catch (IOException e) {
-                System.out.println("BRUH");
+                e.printStackTrace();
             }
 
             try {
@@ -178,13 +174,6 @@ public class Server {
                 removeAll();
                 MAIN.interrupt();
                 Thread.currentThread().interrupt();
-
-
-                System.out.print(status);
-                if (status) {
-                    status = false;
-                }
-                System.out.println(" -> " + status);
 
                 return true;
 
@@ -227,7 +216,6 @@ public class Server {
         return password.equals( user.getValue("PASSWORD") );
 
     }
-
     public boolean logout( String ip ) {
 
         return database.update("IP=" + ip,
@@ -308,7 +296,6 @@ public class Server {
 
     public void log( String message ) {
 
-        System.out.println("SHOULD BE LOGGED: "+message+"\n\n");
         //log.log(message);
 
     }
@@ -406,7 +393,25 @@ public class Server {
     }
     public ArrayList<String[]> getRegisteredUsers() {
 
-        return new ArrayList<>();
+        ArrayList<Record> recs = database.getTable().getTable();
+        ArrayList<String[]> recsAsStrings = new ArrayList<String[]>();
+
+        for ( Record r : recs ) recsAsStrings.add(r.toString().split(":",-1));
+
+        return recsAsStrings;
+
+    }
+    public String getInstance( String IP ) {
+
+        int instances = 0;
+
+        for ( ConnectionThread r : clientconnections ) {
+
+            if ( r.id().contains(IP) ) instances += 1;
+
+        }
+
+        return "."+instances;
 
     }
 

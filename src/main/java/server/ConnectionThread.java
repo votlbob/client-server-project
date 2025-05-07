@@ -75,7 +75,7 @@ public class ConnectionThread extends Thread {
                         //    readLine() call strips it off
                         String pre = datain.readLine();
                         log( "FROM: " + clientIP );
-                        log("RECEIVED: " + pre + "\n" );
+                        log( "RECEIVED: " + pre + "\n" );
                         String[] txt = pre.split(":", -1);
 
                         // -- if the disconnect string is received then
@@ -83,6 +83,11 @@ public class ConnectionThread extends Thread {
                         //    server's active client thread list, and terminate the thread
 
                         switch( txt[0] ) {
+
+                            case( "instance" ):
+
+                                send( txt[1]+":"+server.getInstance( txt[1] ) );
+                                break;
 
                             case( "disconnect" ):
                                 disconnect();

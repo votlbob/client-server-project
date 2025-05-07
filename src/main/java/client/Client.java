@@ -12,6 +12,7 @@ import java.net.UnknownHostException;
 public class Client {
 
     ClientGUI GUI;
+    private String instance;
 
     // -- port and host name of server
 
@@ -77,6 +78,15 @@ public class Client {
         // -- wrap the socket in stream I/O objects
         datain = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         dataout = new DataOutputStream(socket.getOutputStream());
+
+        instance = getInstanceInServer();
+        SELF += instance;
+
+    }
+
+    private String getInstanceInServer() {
+
+        return send( "instance:"+SELF ).split( ":", -1 )[1];
 
     }
 

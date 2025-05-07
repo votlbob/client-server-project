@@ -11,12 +11,15 @@ import java.awt.event.WindowEvent;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class ServerGUI extends JFrame {
 
 
     private Server server;
+
     private boolean serverUp;
+    private JFrame registry;
 
 
     private JPanel panel;
@@ -149,7 +152,7 @@ public class ServerGUI extends JFrame {
     }
     private void registryButtonClicked() {
 
-        JDialog registry = new JDialog(this,false);
+        registry = new JFrame();
         Thread REGISTRY;
 
         registry.setBounds(100, 100, 580, 384);
@@ -169,9 +172,14 @@ public class ServerGUI extends JFrame {
 
 
         REGISTRY = new Thread(() -> {
+
             long lastModified = 0;
-            while (true) {
-                if (file.exists() && (file.lastModified() != lastModified)) {
+
+            while ( !Thread.currentThread().isInterrupted() ) {
+
+                if ( file.exists() && lastModified+200 < file.lastModified() ) {
+
+                    //System.out.println(file.lastModified());
                     lastModified = file.lastModified();
 
                     database.refresh();
@@ -190,19 +198,23 @@ public class ServerGUI extends JFrame {
 
                     }
 
+                    registry.setIgnoreRepaint( false );
+
 
                 }
                 try {
                     Thread.sleep(200);
                 } catch (InterruptedException e) {
+                    e.printStackTrace();
                     break;
                 }
             }
+
         });
         REGISTRY.start();
 
 
-        addWindowListener(new WindowAdapter() {
+        registry.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 REGISTRY.interrupt();
@@ -358,6 +370,7 @@ public class ServerGUI extends JFrame {
     }
     public void closeWindow() {
 
+        if ( registry!=null ) registry.dispose();
         stopServer();
 
     }
